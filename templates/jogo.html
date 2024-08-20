@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Veia</title>
+    <style>
+        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; }
+        .cell { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 2em; border: 1px solid #000; cursor: pointer; }
+        .cell:hover { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Jogo da Veia</h1>
+    <div id="status">Vez do jogador X</div>
+    <div class="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        let mySymbol = null;
+
+        // Escolhe o símbolo do jogador
+        socket.on('connect', () => {
+            if (!mySymbol) {
+                mySymbol = 'X'; // Se o símbolo não for definido, atribui 'X'
+                document.getElementById('status').textContent = 'Vez do jogador X';
+            }
+        });
+
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.addEventListener('click', () => {
+                const index = cell.getAttribute('data-index');
+                socket.emit('make_move', { index: index, symbol: mySymbol });
+            });
+        });
+
+        socket.on('update_board', data => {
+            const cell = document.querySelector(`.cell[data-index="${data.index}"]`);
+            cell.textContent = data.symbol;
+        });
+
+        socket.on('update_turn', data => {
+            document.getElementById('status').textContent = `Vez do jogador ${data.turn}`;
+            mySymbol = data.turn; // Atualiza o símbolo do jogador
+        });
+
+        socket.on('game_over', data => {
+            const status = document.getElementById('status');
+            if (data.winner === 'Empate') {
+                status.textContent = 'O jogo terminou em empate!';
+            } else {
+                status.textContent = `O jogador ${data.winner} ganhou!`;
+            }
+        });
+    </script>
+</body>
+</html>
